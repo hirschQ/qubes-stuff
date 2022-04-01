@@ -1,0 +1,44 @@
+####my template for syslog receiver is debian-11, template name: debian-11-syslog
+####my app-vm based on debian-11-syslog, app-vm name: sys-log-local
+####my template for sending syslogs: debian-11-work
+
+
+:dom0:
+sudo nano qubes.Syslog
+>>>
+sendingVM receivingVM allow
+<<<
+sudo chown root:qubes /etc/qubes-rpc/policy/qubes.Syslog
+sudo chmod 664 /etc/qubes-rpc/policy/qubes.Syslog
+
+
+
+:debian-11-syslog:
+sudo nano /etc/qubes-rpc/qubes.Syslog.py
+>>>
+paste content of: https://github.com/QubesOS/qubes-core-agent-linux/blob/009e973b1eb3bbb14df59a25bf52a31d5f5f5043/qubes-rpc/qubes.Syslog 
+<<<
+sudo chown root:root /etc/qubes-rpc/qubes.Syslog.py
+sudo chmod 755 /etc/qubes-rpc/qubes.Syslog.py
+sudo chmod +x /etc/qubes-rpc/qubes.Syslog.py
+
+
+
+:debian-11-work:
+sudo nano /etc/rsyslog.d/qubes_syslog.conf
+>>>
+module(load="omprog")
+template(name="qubes_syslog" type="string"
+    string="<%PRI%>%TIMESTAMP:::date-rfc3339% %syslogtag%%msg:::sp-if-no-1st-sp%%msg:::drop-last-lf%\n")
+ruleset(name="qubes") {
+  action(
+    type="omprog"
+    binary="/usr/sbin/runuser -u user -- /usr/bin/qrexec-client-vm sys-log-local qubes.Syslog"
+    template="qubes_syslog"
+  )
+}
+#apply your filtering here (*.* just forwards all logs)
+*.*   
+<<<
+
+
